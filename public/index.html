@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GMS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div id="intro">GMS</div>
+
+<div id="loginBox">
+    <h1>GMS</h1>
+
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+    <button onclick="recover()">Forgot Password</button>
+</div>
+
+<div id="dashboard" style="display:none;">
+    <h2>GMS</h2>
+    <button onclick="logout()">Logout</button>
+
+    <div id="adminPanel" style="display:none;">
+        <button onclick="showInfo()">Information</button>
+        <button onclick="showCreateUser()">Create User</button>
+    </div>
+
+    <div id="content"></div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
