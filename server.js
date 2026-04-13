@@ -1,12 +1,23 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
 const app = express();
 
+// ✅ Middleware
 app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-const fs = require("fs");
+// ✅ Ensure uploads folder exists
+const uploadPath = "public/uploads";
+if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+}
 
+// ✅ Load data safely
 let users = [];
 let posts = [];
 
@@ -22,23 +33,21 @@ try {
     fs.writeFileSync("posts.json", "[]");
 }
 
-// 🔥 ADD ID TO OLD POSTS
+// ✅ Add ID to old posts
 let updated = false;
 
 posts.forEach((p, index) => {
     if (!p.id) {
-        p.id = Date.now() + index; // unique id
+        p.id = Date.now() + index;
         updated = true;
     }
 });
 
-// SAVE ONLY IF CHANGES MADE
 if (updated) {
     fs.writeFileSync("posts.json", JSON.stringify(posts, null, 2));
-    console.log("Old posts updated with IDs");
 }
 
-// LOGIN
+// ================= LOGIN =================
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
@@ -53,11 +62,10 @@ app.post("/login", (req, res) => {
     }
 });
 
-// CREATE USER (ADMIN)
+// ================= CREATE USER =================
 app.post("/create-user", (req, res) => {
     const { username, password } = req.body;
 
-    // 🔒 check if user already exists
     const exists = users.find(u => u.username === username);
 
     if (exists) {
@@ -71,11 +79,10 @@ app.post("/create-user", (req, res) => {
     res.json({ success: true });
 });
 
-const multer = require("multer");
-
+// ================= MULTER (UPLOAD) =================
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, "public/uploads/");
+        cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
         cb(null, Date.now() + "-" + file.originalname);
@@ -84,10 +91,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// ================= ADD POST =================
 app.post("/add-post", upload.single("image"), (req, res) => {
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-
     const { title, desc } = req.body;
 
     if (!title) {
@@ -105,25 +110,22 @@ app.post("/add-post", upload.single("image"), (req, res) => {
 
     fs.writeFileSync("posts.json", JSON.stringify(posts, null, 2));
 
-    console.log("Post added:", newPost);
-
     res.json({ success: true });
 });
 
+// ================= DELETE POST =================
 app.post("/delete-post", (req, res) => {
-    console.log("Delete request:", req.body);
-
     const { id } = req.body;
 
-    posts = posts.filter(p => p.id != id); // ✅ use != (important)
+    posts = posts.filter(p => p.id != id);
 
     fs.writeFileSync("posts.json", JSON.stringify(posts, null, 2));
 
     res.json({ success: true });
 });
-app.post("/edit-post", upload.single("image"), (req, res) => {
-    console.log("Edit request:", req.body);
 
+// ================= EDIT POST =================
+app.post("/edit-post", upload.single("image"), (req, res) => {
     const { id, title, desc } = req.body;
 
     posts = posts.map(p => {
@@ -132,7 +134,7 @@ app.post("/edit-post", upload.single("image"), (req, res) => {
                 ...p,
                 title,
                 desc,
-                image: req.file ? req.file.filename : p.image // 🔥 update image if new
+                image: req.file ? req.file.filename : p.image
             };
         }
         return p;
@@ -142,12 +144,13 @@ app.post("/edit-post", upload.single("image"), (req, res) => {
 
     res.json({ success: true });
 });
-// GET POSTS
+
+// ================= GET POSTS =================
 app.get("/posts", (req, res) => {
     res.json(posts);
 });
 
-// RECOVER PASSWORD
+// ================= RECOVER PASSWORD =================
 app.post("/recover", (req, res) => {
     const { answer } = req.body;
 
@@ -158,6 +161,9 @@ app.post("/recover", (req, res) => {
     }
 });
 
+// ================= START SERVER =================
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () => {
+    console.log("🚀 Server running on port " + PORT);
+});
